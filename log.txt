@@ -1,0 +1,3 @@
+starting LSP server: 1709570742
+got initialize message: 1
+... sent initialize responsegot err: unknown method: initialized
