@@ -1,4 +1,4 @@
-package golsp
+package educationlsp
 
 type InitializeMessage struct {
 	RPC    string           `json:"jsonrpc"`
@@ -60,7 +60,8 @@ type InitializeResult struct {
 }
 
 type ServerCapabilities struct {
-	TextDocumentSync int `json:"textDocumentSync"`
+	TextDocumentSync int  `json:"textDocumentSync"`
+	HoverProvider    bool `json:"hoverProvider"`
 }
 
 type ServerInfo struct {
@@ -74,7 +75,13 @@ func NewInitializeResponse(id int) InitializeResponse {
 		ID:  id,
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
+				// You can only send me "Full document updates"
+				//   If we were a smarter LSP, we would ask for incremental updates
+				//   But this is just for education
 				TextDocumentSync: 1,
+
+				// We can provide hovers
+				HoverProvider: true,
 			},
 			ServerInfo: ServerInfo{
 				Name:    "educationalsp",

@@ -1,4 +1,4 @@
-package golsp
+package educationlsp
 
 import (
 	"bytes"
@@ -23,7 +23,6 @@ func EncodeMessageStruct(message interface{}) string {
 }
 
 type BaseMessage struct {
-	RPC    string `json:"jsonrpc"`
 	ID     int    `json:"id"`
 	Method string `json:"method"`
 }
@@ -44,24 +43,25 @@ func parseContentLength(msg []byte) ([]byte, int, error) {
 
 	return after, contentLength, nil
 }
-
-func Scan(msg []byte) (length int, ok bool) {
-	before, after, found := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
+func Scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	before, after, found := bytes.Cut(data, []byte{'\r', '\n', '\r', '\n'})
 	if !found {
-		return 0, false
+		return 0, nil, nil
 	}
 
 	contentLengthStr := string(before[CONTENT_LENGTH:])
 	contentLength, err := strconv.Atoi(contentLengthStr)
 	if err != nil {
-		return 0, false
+		return 0, nil, err
 	}
 
+	// We don't have enough data, got wait til later
 	if len(after) < contentLength {
-		return 0, false
+		return 0, nil, nil
 	}
 
-	return len(before) + 4 + contentLength, true
+	totalLength := len(before) + 4 + contentLength
+	return totalLength, data[:totalLength], nil
 }
 
 func DecodeMessage(contents []byte) (any, error) {
@@ -83,8 +83,20 @@ func DecodeMessage(contents []byte) (any, error) {
 		var initializeMessage InitializeMessage
 		err := json.Unmarshal(byteContents, &initializeMessage)
 		return initializeMessage, err
+	case "textDocument/didOpen":
+		var parsed TextDocumentDidOpen
+		err := json.Unmarshal(byteContents, &parsed)
+		return parsed, err
+	case "textDocument/didChange":
+		var parsed TextDocumentDidChange
+		err := json.Unmarshal(byteContents, &parsed)
+		return parsed, err
+	case "textDocument/hover":
+		var parsed TextDocumentHover
+		err := json.Unmarshal(byteContents, &parsed)
+		return parsed, err
 	default:
-		return nil, fmt.Errorf("unknown method: %s", message.Method)
+		return message, nil
 	}
 
 }

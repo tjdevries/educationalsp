@@ -2,57 +2,56 @@ package main
 
 import (
 	"bufio"
+	"educationlsp"
 	"fmt"
-	"golsp"
 	"os"
 	"strconv"
 	"time"
 )
 
-type Message struct {
-	method   string
-	contents interface{}
-}
+func log(s string) {}
 
 func main() {
-	file, err := os.OpenFile("/home/tjdevries/git/go-lsp/log.txt", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0775)
-	if err != nil {
-		panic("COULDNT OPEN THE LOG")
-	}
-	defer file.Close()
-
 	stdinReader := bufio.NewScanner(os.Stdin)
-	stdinReader.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		chunk, ok := golsp.Scan(data)
-		if !ok {
-			return 0, nil, nil
-		}
+	stdinReader.Split(educationlsp.Scan)
 
-		return chunk, data[:chunk], nil
-	})
+	log("starting LSP server: " + strconv.Itoa(int(time.Now().Unix())) + "\n")
 
-	stdoutWriter := os.Stdout
-
-	file.WriteString("starting LSP server: " + strconv.Itoa(int(time.Now().Unix())) + "\n")
+	serverState := educationlsp.ServerState{
+		Writer:    os.Stdout,
+		Documents: make(map[string]string),
+	}
 
 	for stdinReader.Scan() {
 		message := stdinReader.Bytes()
-		msg, err := golsp.DecodeMessage(message)
+		msg, err := educationlsp.DecodeMessage(message)
 		if err != nil {
-			file.WriteString("got err: " + fmt.Sprintf("%+v", err) + "\n")
-			return
+			log("got err: " + fmt.Sprintf("%+v", err) + "\n")
+			continue
 		}
 
 		switch v := msg.(type) {
-		case golsp.InitializeMessage:
-			file.WriteString(fmt.Sprintf("got initialize message: %d\n", v.ID))
-			response := golsp.EncodeMessageStruct(golsp.NewInitializeResponse(v.ID))
-			stdoutWriter.WriteString(response)
-			file.WriteString("... sent initialize response")
-		default:
-			file.WriteString("I DONT KNOW:" + string(message) + "\n")
+		case educationlsp.InitializeMessage:
+			log(fmt.Sprintf("got initialize request: %d\n", v.ID))
+			serverState.Initialize(&v)
 
+		case educationlsp.TextDocumentDidOpen:
+			log(fmt.Sprintf("textDocument/didOpen: %s\n", v.Params.TextDocument.URI))
+			serverState.TextDocumentDidOpen(&v)
+
+		case educationlsp.TextDocumentDidChange:
+			log(fmt.Sprintf("textDocument/didChange: %s\n", v.Params.ContentChanges))
+			serverState.TextDocumentDidChange(&v)
+
+		case educationlsp.TextDocumentHover:
+			log(fmt.Sprintf("textDocument/hover: %d\n", v.ID))
+			serverState.TextDocumentHover(&v)
+
+		case educationlsp.BaseMessage:
+			log(fmt.Sprintf("Not properly decoded: %d %s\n", v.ID, v.Method))
+
+		default:
+			log("This shouldn't happen:" + string(message) + "\n")
 		}
 	}
-
 }
