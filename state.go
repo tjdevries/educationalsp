@@ -32,17 +32,8 @@ func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
 		if idx >= 0 {
 			diagnostics = append(diagnostics, Diagnostic{
 				Severity: DiagnosticSeverityError,
-				Range: Range{
-					Start: Position{
-						Line:      row,
-						Character: idx,
-					},
-					End: Position{
-						Line:      row,
-						Character: idx + len("VS Code"),
-					},
-				},
-				Message: "NEVER, EVER WRITE THAT (uncensored) IN MY EDITOR AGAIN",
+				Range:    LineRange(row, idx, idx+len("VS Code")),
+				Message:  "NEVER, EVER WRITE THAT (uncensored) IN MY EDITOR AGAIN",
 			})
 		}
 
@@ -50,17 +41,17 @@ func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
 		if idx >= 0 {
 			diagnostics = append(diagnostics, Diagnostic{
 				Severity: DiagnosticSeverityWarning,
-				Range: Range{
-					Start: Position{
-						Line:      row,
-						Character: idx,
-					},
-					End: Position{
-						Line:      row,
-						Character: idx + len("VS C*de"),
-					},
-				},
-				Message: "This is ok... but be careful",
+				Range:    LineRange(row, idx, idx+len("VS C*de")),
+				Message:  "This is ok... but be careful",
+			})
+		}
+
+		idx = strings.Index(line, "What do I do now?")
+		if idx >= 0 {
+			diagnostics = append(diagnostics, Diagnostic{
+				Severity: DiagnosticSeverityInformation,
+				Range:    LineRange(row, idx, idx+len("What do I do now?")),
+				Message:  "SMASH THAT LIKE BUTTON, CLICK SUBSCRIBE AND RING THAT BELL",
 			})
 		}
 	}
@@ -79,8 +70,6 @@ func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
 
 		s.Writer.Write([]byte(EncodeMessageStruct(publishDiags)))
 	}
-	// s.Writer.Write
-	// s.Writer.Write()
 }
 
 func (s *ServerState) TextDocumentHover(msg *TextDocumentHover) {
@@ -94,6 +83,74 @@ func (s *ServerState) TextDocumentHover(msg *TextDocumentHover) {
 		},
 		Result: TextDocumentHoverResponseResult{
 			Contents: fmt.Sprintf("This is from the LSP: Document has %d characters", len(contents)),
+		},
+	}
+	s.Writer.Write([]byte(EncodeMessageStruct(response)))
+}
+
+func (s *ServerState) TextDocumentCodeAction(msg *TextDocumentCodeAction) {
+	text := s.Documents[msg.Params.TextDocument.URI]
+
+	actions := []CodeAction{}
+	for row, line := range strings.Split(text, "\n") {
+		idx := strings.Index(line, "VS Code")
+		if idx >= 0 {
+			replaceChange := map[string][]TextEdit{}
+			replaceChange[msg.Params.TextDocument.URI] = []TextEdit{
+				{
+					Range:   LineRange(row, idx, idx+len("VS Code")),
+					NewText: "Neovim",
+				},
+			}
+
+			actions = append(actions, CodeAction{
+				Title: "Replace VS C*de with a superior editor",
+				Edit:  &WorkspaceEdit{Changes: replaceChange},
+			})
+
+			censorChange := map[string][]TextEdit{}
+			censorChange[msg.Params.TextDocument.URI] = []TextEdit{
+				{
+					Range:   LineRange(row, idx, idx+len("VS Code")),
+					NewText: "VS C*de",
+				},
+			}
+
+			actions = append(actions, CodeAction{
+				Title: "Censor to VS C*de",
+				Edit:  &WorkspaceEdit{Changes: censorChange},
+			})
+		}
+	}
+
+	response := TextDocumentCodeActionResponse{
+		Response: Response{
+			RPC: "2.0",
+			ID:  msg.ID,
+		},
+		Result: actions,
+	}
+
+	s.Writer.Write([]byte(EncodeMessageStruct(response)))
+}
+
+func (s *ServerState) TextDocumentCompletion(msg *TextDocumentCompletion) {
+	// In real life, you'd ask the compiler for a bunch of things that work!
+	// or make some guesses about what might work via context of your file/imports/etc.
+	//
+	// Instead, we'll just return hello world, because we're cool like that
+
+	response := TextDocumentCompletionResponse{
+		Response: Response{
+			RPC: "2.0",
+			ID:  msg.ID,
+		},
+		Result: []CompletionItem{
+			{
+				Label:         "Neovim (BTW)",
+				Detail:        "Details?",
+				Documentation: "This truly do be documentation",
+			},
 		},
 	}
 	s.Writer.Write([]byte(EncodeMessageStruct(response)))

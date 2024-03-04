@@ -60,8 +60,10 @@ type InitializeResult struct {
 }
 
 type ServerCapabilities struct {
-	TextDocumentSync int  `json:"textDocumentSync"`
-	HoverProvider    bool `json:"hoverProvider"`
+	TextDocumentSync   int            `json:"textDocumentSync"`
+	HoverProvider      bool           `json:"hoverProvider"`
+	CodeActionProvider bool           `json:"codeActionProvider"`
+	CompletionProvider map[string]any `json:"completionProvider"`
 }
 
 type ServerInfo struct {
@@ -80,8 +82,10 @@ func NewInitializeResponse(id int) InitializeResponse {
 				//   But this is just for education
 				TextDocumentSync: 1,
 
-				// We can provide hovers
-				HoverProvider: true,
+				// We can provide the following features
+				HoverProvider:      true,
+				CodeActionProvider: true,
+				CompletionProvider: map[string]any{},
 			},
 			ServerInfo: ServerInfo{
 				Name:    "educationalsp",

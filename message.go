@@ -33,3 +33,25 @@ type Location struct {
 	URI   string `json:"uri"`
 	Range Range  `json:"range"`
 }
+
+type WorkspaceEdit struct {
+	Changes map[string][]TextEdit `json:"changes"`
+}
+
+type TextEdit struct {
+	Range   Range  `json:"range"`
+	NewText string `json:"newText"`
+}
+
+func LineRange(line, start, end int) Range {
+	return Range{
+		Start: Position{
+			Line:      line,
+			Character: start,
+		},
+		End: Position{
+			Line:      line,
+			Character: end,
+		},
+	}
+}

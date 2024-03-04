@@ -95,6 +95,14 @@ func DecodeMessage(contents []byte) (any, error) {
 		var parsed TextDocumentHover
 		err := json.Unmarshal(byteContents, &parsed)
 		return parsed, err
+	case "textDocument/codeAction":
+		var parsed TextDocumentCodeAction
+		err := json.Unmarshal(byteContents, &parsed)
+		return parsed, err
+	case "textDocument/completion":
+		var parsed TextDocumentCompletion
+		err := json.Unmarshal(byteContents, &parsed)
+		return parsed, err
 	default:
 		return message, nil
 	}
