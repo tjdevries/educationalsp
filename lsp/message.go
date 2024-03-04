@@ -1,12 +1,11 @@
 package lsp
 
 import (
-	"educationalsp/rpc"
 	"encoding/json"
 )
 
-func ToMessage(byteContents []byte, message *rpc.BaseMessage) (any, error) {
-	switch message.Method {
+func ToMessage(method string, byteContents []byte) (any, error) {
+	switch method {
 	case "initialize":
 		var initializeMessage InitializeMessage
 		err := json.Unmarshal(byteContents, &initializeMessage)
@@ -32,7 +31,7 @@ func ToMessage(byteContents []byte, message *rpc.BaseMessage) (any, error) {
 		err := json.Unmarshal(byteContents, &parsed)
 		return parsed, err
 	default:
-		return message, nil
+		return nil, nil
 	}
 }
 

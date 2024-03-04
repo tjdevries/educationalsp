@@ -34,41 +34,43 @@ func main() {
 
 	for stdinReader.Scan() {
 		message := stdinReader.Bytes()
-		base, err := rpc.DecodeMessage(message)
+		method, contents, err := rpc.DecodeMessageMethod(message)
 		if err != nil {
 			logger.Println("got err: " + fmt.Sprintf("%+v", err))
 			continue
 		}
 
-		msg, err := lsp.ToMessage(message, base)
+		msg, err := lsp.ToMessage(method, contents)
 
-		switch v := msg.(type) {
+		switch msg := msg.(type) {
 		case lsp.InitializeMessage:
-			logger.Println(fmt.Sprintf("got initialize request: %d\n", v.ID))
-			serverState.Initialize(&v)
+			logger.Printf("Original Message: %s\n", string(message))
+			logger.Println(fmt.Sprintf("got initialize request: %d\n", msg.ID))
+			serverState.Initialize(&msg)
 
 		case lsp.TextDocumentDidOpen:
-			logger.Println(fmt.Sprintf("textDocument/didOpen: %s\n", v.Params.TextDocument.URI))
-			serverState.TextDocumentDidOpen(&v)
+			logger.Println(fmt.Sprintf("textDocument/didOpen: %s\n", msg.Params.TextDocument.URI))
+			serverState.TextDocumentDidOpen(&msg)
 
 		case lsp.TextDocumentDidChange:
-			logger.Println(fmt.Sprintf("textDocument/didChange: %s\n", v.Params.ContentChanges))
-			serverState.TextDocumentDidChange(&v)
+			logger.Println(fmt.Sprintf(
+				"textDocument/didChange: %s-> size=%d\n",
+				msg.Params.TextDocument.URI,
+				len(msg.Params.ContentChanges)))
+
+			serverState.TextDocumentDidChange(&msg)
 
 		case lsp.TextDocumentHover:
-			logger.Println(fmt.Sprintf("textDocument/hover: %d\n", v.ID))
-			serverState.TextDocumentHover(&v)
+			logger.Println(fmt.Sprintf("textDocument/hover: %d\n", msg.ID))
+			serverState.TextDocumentHover(&msg)
 
 		case lsp.TextDocumentCodeAction:
-			logger.Println(fmt.Sprintf("textDocument/codeAction: %d\n", v.ID))
-			serverState.TextDocumentCodeAction(&v)
+			logger.Println(fmt.Sprintf("textDocument/codeAction: %d\n", msg.ID))
+			serverState.TextDocumentCodeAction(&msg)
 
 		case lsp.TextDocumentCompletion:
-			logger.Println(fmt.Sprintf("textDocument/completion: %d\n", v.ID))
-			serverState.TextDocumentCompletion(&v)
-
-		case rpc.BaseMessage:
-			logger.Println(fmt.Sprintf("Not properly decoded: %d %s\n", v.ID, v.Method))
+			logger.Println(fmt.Sprintf("textDocument/completion: %d\n", msg.ID))
+			serverState.TextDocumentCompletion(&msg)
 
 		default:
 			logger.Println("This shouldn't happen:" + string(message))

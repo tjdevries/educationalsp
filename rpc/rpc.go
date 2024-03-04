@@ -7,8 +7,8 @@ import (
 	"strconv"
 )
 
-type BaseMessage struct {
-	ID     int    `json:"id"`
+type baseMessage struct {
+	ID     int    `json:"id,omitempty"`
 	Method string `json:"method"`
 }
 
@@ -60,19 +60,20 @@ func Scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return totalLength, data[:totalLength], nil
 }
 
-func DecodeMessage(contents []byte) (*BaseMessage, error) {
+// DecodeMessageMethod takes a message and returns the method and the contents of the message
+func DecodeMessageMethod(contents []byte) (string, []byte, error) {
 	remaining, contentLength, err := parseContentLength(contents)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// TODO: ... kind of annoying, what if two messages? why not just read til end? no one knows
 	byteContents := remaining[:contentLength]
 
-	var message BaseMessage
+	var message baseMessage
 	if err := json.Unmarshal(byteContents, &message); err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
-	return &message, err
+	return message.Method, byteContents, err
 }

@@ -49,8 +49,7 @@ type SynchronizationCapabilities struct {
 }
 
 type InitializeResponse struct {
-	RPC    string           `json:"jsonrpc"`
-	ID     int              `json:"id"`
+	Response
 	Result InitializeResult `json:"result"`
 }
 
@@ -73,8 +72,10 @@ type ServerInfo struct {
 
 func NewInitializeResponse(id int) InitializeResponse {
 	return InitializeResponse{
-		RPC: "2.0",
-		ID:  id,
+		Response: Response{
+			RPC: "2.0",
+			ID:  id,
+		},
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
 				// You can only send me "Full document updates"
