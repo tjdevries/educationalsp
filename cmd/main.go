@@ -2,7 +2,8 @@ package main
 
 import (
 	"bufio"
-	"educationlsp"
+	"educationalsp/lsp"
+	"educationalsp/rpc"
 	"fmt"
 	"log"
 	"os"
@@ -22,49 +23,51 @@ func main() {
 	logger := log.New(logFile, "[educationlsp] ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	stdinReader := bufio.NewScanner(os.Stdin)
-	stdinReader.Split(educationlsp.Scan)
+	stdinReader.Split(rpc.Scan)
 
 	logger.Println("starting LSP server: " + strconv.Itoa(int(time.Now().Unix())))
 
-	serverState := educationlsp.ServerState{
+	serverState := lsp.ServerState{
 		Writer:    os.Stdout,
 		Documents: make(map[string]string),
 	}
 
 	for stdinReader.Scan() {
 		message := stdinReader.Bytes()
-		msg, err := educationlsp.DecodeMessage(message)
+		base, err := rpc.DecodeMessage(message)
 		if err != nil {
 			logger.Println("got err: " + fmt.Sprintf("%+v", err))
 			continue
 		}
 
+		msg, err := lsp.ToMessage(message, base)
+
 		switch v := msg.(type) {
-		case educationlsp.InitializeMessage:
+		case lsp.InitializeMessage:
 			logger.Println(fmt.Sprintf("got initialize request: %d\n", v.ID))
 			serverState.Initialize(&v)
 
-		case educationlsp.TextDocumentDidOpen:
+		case lsp.TextDocumentDidOpen:
 			logger.Println(fmt.Sprintf("textDocument/didOpen: %s\n", v.Params.TextDocument.URI))
 			serverState.TextDocumentDidOpen(&v)
 
-		case educationlsp.TextDocumentDidChange:
+		case lsp.TextDocumentDidChange:
 			logger.Println(fmt.Sprintf("textDocument/didChange: %s\n", v.Params.ContentChanges))
 			serverState.TextDocumentDidChange(&v)
 
-		case educationlsp.TextDocumentHover:
+		case lsp.TextDocumentHover:
 			logger.Println(fmt.Sprintf("textDocument/hover: %d\n", v.ID))
 			serverState.TextDocumentHover(&v)
 
-		case educationlsp.TextDocumentCodeAction:
+		case lsp.TextDocumentCodeAction:
 			logger.Println(fmt.Sprintf("textDocument/codeAction: %d\n", v.ID))
 			serverState.TextDocumentCodeAction(&v)
 
-		case educationlsp.TextDocumentCompletion:
+		case lsp.TextDocumentCompletion:
 			logger.Println(fmt.Sprintf("textDocument/completion: %d\n", v.ID))
 			serverState.TextDocumentCompletion(&v)
 
-		case educationlsp.BaseMessage:
+		case rpc.BaseMessage:
 			logger.Println(fmt.Sprintf("Not properly decoded: %d %s\n", v.ID, v.Method))
 
 		default:

@@ -1,4 +1,4 @@
-package educationlsp
+package rpc
 
 import (
 	"bytes"
@@ -7,27 +7,23 @@ import (
 	"strconv"
 )
 
-// Takes a message and returns a string that can be sent over the wire
-func EncodeMessage(msg string) string {
-	msgLength := len(msg)
-	return fmt.Sprintf("Content-Length: %d\r\n\r\n%s", msgLength, msg)
-}
-
-func EncodeMessageStruct(message interface{}) string {
-	msg, err := json.Marshal(message)
-	if err != nil {
-		panic("hahaha lul this won't happen")
-	}
-
-	return EncodeMessage(string(msg))
-}
-
 type BaseMessage struct {
 	ID     int    `json:"id"`
 	Method string `json:"method"`
 }
 
 const CONTENT_LENGTH = len("Content-Length: ")
+
+// Takes a message and returns a string that can be sent over the wire
+func EncodeMessage(message interface{}) string {
+	msg, err := json.Marshal(message)
+	if err != nil {
+		panic("hahaha lul this won't happen")
+	}
+
+	msgLength := len(msg)
+	return fmt.Sprintf("Content-Length: %d\r\n\r\n%s", msgLength, msg)
+}
 
 func parseContentLength(msg []byte) ([]byte, int, error) {
 	before, after, found := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
@@ -64,7 +60,7 @@ func Scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return totalLength, data[:totalLength], nil
 }
 
-func DecodeMessage(contents []byte) (any, error) {
+func DecodeMessage(contents []byte) (*BaseMessage, error) {
 	remaining, contentLength, err := parseContentLength(contents)
 	if err != nil {
 		return nil, err
@@ -78,33 +74,5 @@ func DecodeMessage(contents []byte) (any, error) {
 		return nil, err
 	}
 
-	switch message.Method {
-	case "initialize":
-		var initializeMessage InitializeMessage
-		err := json.Unmarshal(byteContents, &initializeMessage)
-		return initializeMessage, err
-	case "textDocument/didOpen":
-		var parsed TextDocumentDidOpen
-		err := json.Unmarshal(byteContents, &parsed)
-		return parsed, err
-	case "textDocument/didChange":
-		var parsed TextDocumentDidChange
-		err := json.Unmarshal(byteContents, &parsed)
-		return parsed, err
-	case "textDocument/hover":
-		var parsed TextDocumentHover
-		err := json.Unmarshal(byteContents, &parsed)
-		return parsed, err
-	case "textDocument/codeAction":
-		var parsed TextDocumentCodeAction
-		err := json.Unmarshal(byteContents, &parsed)
-		return parsed, err
-	case "textDocument/completion":
-		var parsed TextDocumentCompletion
-		err := json.Unmarshal(byteContents, &parsed)
-		return parsed, err
-	default:
-		return message, nil
-	}
-
+	return &message, err
 }

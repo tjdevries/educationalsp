@@ -1,4 +1,4 @@
-package educationlsp
+package lsp
 
 type InitializeMessage struct {
 	RPC    string           `json:"jsonrpc"`

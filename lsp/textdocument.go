@@ -1,4 +1,4 @@
-package educationlsp
+package lsp
 
 type TextDocumentItem struct {
 	URI        string `json:"uri"`

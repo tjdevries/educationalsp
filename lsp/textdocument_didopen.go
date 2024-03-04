@@ -1,4 +1,4 @@
-package educationlsp
+package lsp
 
 type TextDocumentDidOpen struct {
 	Notification

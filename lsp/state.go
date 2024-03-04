@@ -1,6 +1,7 @@
-package educationlsp
+package lsp
 
 import (
+	"educationalsp/rpc"
 	"fmt"
 	"io"
 	"strings"
@@ -13,7 +14,7 @@ type ServerState struct {
 
 func (s *ServerState) Initialize(msg *InitializeMessage) {
 	// Reply to the initialize request
-	response := EncodeMessageStruct(NewInitializeResponse(msg.ID))
+	response := rpc.EncodeMessage(NewInitializeResponse(msg.ID))
 	s.Writer.Write([]byte(response))
 }
 
@@ -68,7 +69,7 @@ func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
 			},
 		}
 
-		s.Writer.Write([]byte(EncodeMessageStruct(publishDiags)))
+		s.Writer.Write([]byte(rpc.EncodeMessage(publishDiags)))
 	}
 }
 
@@ -85,7 +86,7 @@ func (s *ServerState) TextDocumentHover(msg *TextDocumentHover) {
 			Contents: fmt.Sprintf("This is from the LSP: Document has %d characters", len(contents)),
 		},
 	}
-	s.Writer.Write([]byte(EncodeMessageStruct(response)))
+	s.Writer.Write([]byte(rpc.EncodeMessage(response)))
 }
 
 func (s *ServerState) TextDocumentCodeAction(msg *TextDocumentCodeAction) {
@@ -131,7 +132,7 @@ func (s *ServerState) TextDocumentCodeAction(msg *TextDocumentCodeAction) {
 		Result: actions,
 	}
 
-	s.Writer.Write([]byte(EncodeMessageStruct(response)))
+	s.Writer.Write([]byte(rpc.EncodeMessage(response)))
 }
 
 func (s *ServerState) TextDocumentCompletion(msg *TextDocumentCompletion) {
@@ -153,5 +154,5 @@ func (s *ServerState) TextDocumentCompletion(msg *TextDocumentCompletion) {
 			},
 		},
 	}
-	s.Writer.Write([]byte(EncodeMessageStruct(response)))
+	s.Writer.Write([]byte(rpc.EncodeMessage(response)))
 }
