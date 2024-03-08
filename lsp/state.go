@@ -4,6 +4,7 @@ import (
 	"educationalsp/rpc"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 )
 
@@ -12,21 +13,23 @@ type ServerState struct {
 	Documents map[string]string
 }
 
+func NewServerState() ServerState {
+	return ServerState{
+		Writer:    os.Stdout,
+		Documents: map[string]string{},
+	}
+}
+
 func (s *ServerState) Initialize(msg *InitializeMessage) {
 	// Reply to the initialize request
 	response := rpc.EncodeMessage(NewInitializeResponse(msg.ID))
 	s.Writer.Write([]byte(response))
 }
 
-func (s *ServerState) TextDocumentDidOpen(msg *TextDocumentDidOpen) {
-	s.Documents[msg.Params.TextDocument.URI] = msg.Params.TextDocument.Text
-}
-
-func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
-	// We only do full text sync, so this is easy
-	text := msg.Params.ContentChanges[0].Text
-	s.Documents[msg.Params.TextDocument.URI] = text
-
+// emitDiagnosticsForFile sends the diagnostics for the given file to the client,
+// if any are found.
+func (s *ServerState) emitDiagnosticsForFile(uri string) {
+	text := s.Documents[uri]
 	diagnostics := []Diagnostic{}
 	for row, line := range strings.Split(text, "\n") {
 		idx := strings.Index(line, "VS Code")
@@ -57,20 +60,32 @@ func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
 		}
 	}
 
-	if len(diagnostics) > 0 {
-		publishDiags := PublishDiagnostics{
-			Notification: Notification{
-				RPC:    "2.0",
-				Method: "textDocument/publishDiagnostics",
-			},
-			Params: PublishDiagnosticsParams{
-				URI:         msg.Params.TextDocument.URI,
-				Diagnostics: diagnostics,
-			},
-		}
-
-		s.Writer.Write([]byte(rpc.EncodeMessage(publishDiags)))
+	publishDiags := PublishDiagnostics{
+		Notification: Notification{
+			RPC:    "2.0",
+			Method: "textDocument/publishDiagnostics",
+		},
+		Params: PublishDiagnosticsParams{
+			URI:         uri,
+			Diagnostics: diagnostics,
+		},
 	}
+
+	s.Writer.Write([]byte(rpc.EncodeMessage(publishDiags)))
+}
+
+func (s *ServerState) TextDocumentDidOpen(msg *TextDocumentDidOpen) {
+	s.Documents[msg.Params.TextDocument.URI] = msg.Params.TextDocument.Text
+
+	s.emitDiagnosticsForFile(msg.Params.TextDocument.URI)
+}
+
+func (s *ServerState) TextDocumentDidChange(msg *TextDocumentDidChange) {
+	// We only do full text sync, so this is easy
+	text := msg.Params.ContentChanges[0].Text
+	s.Documents[msg.Params.TextDocument.URI] = text
+
+	s.emitDiagnosticsForFile(msg.Params.TextDocument.URI)
 }
 
 func (s *ServerState) TextDocumentHover(msg *TextDocumentHover) {
