@@ -18,7 +18,7 @@ const CONTENT_LENGTH = len("Content-Length: ")
 func EncodeMessage(message interface{}) string {
 	msg, err := json.Marshal(message)
 	if err != nil {
-		panic("hahaha lul this won't happen")
+		panic("Unable to encode message: " + fmt.Sprintf("%+v", err))
 	}
 
 	msgLength := len(msg)
@@ -39,6 +39,26 @@ func parseContentLength(msg []byte) ([]byte, int, error) {
 
 	return after, contentLength, nil
 }
+
+// DecodeMessageMethod takes a message and returns the method and the contents of the message
+func DecodeMessageMethod(message []byte) (string, []byte, error) {
+	remaining, contentLength, err := parseContentLength(message)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Contents of the actual message
+	content := remaining[:contentLength]
+
+	// Decode the message
+	var base baseMessage
+	if err := json.Unmarshal(content, &base); err != nil {
+		return "", nil, err
+	}
+
+	return base.Method, content, err
+}
+
 func Scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	before, after, found := bytes.Cut(data, []byte{'\r', '\n', '\r', '\n'})
 	if !found {
@@ -58,22 +78,4 @@ func Scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
 	totalLength := len(before) + 4 + contentLength
 	return totalLength, data[:totalLength], nil
-}
-
-// DecodeMessageMethod takes a message and returns the method and the contents of the message
-func DecodeMessageMethod(contents []byte) (string, []byte, error) {
-	remaining, contentLength, err := parseContentLength(contents)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// TODO: ... kind of annoying, what if two messages? why not just read til end? no one knows
-	byteContents := remaining[:contentLength]
-
-	var message baseMessage
-	if err := json.Unmarshal(byteContents, &message); err != nil {
-		return "", nil, err
-	}
-
-	return message.Method, byteContents, err
 }

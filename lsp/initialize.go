@@ -1,8 +1,7 @@
 package lsp
 
 type InitializeMessage struct {
-	RPC    string           `json:"jsonrpc"`
-	ID     int              `json:"id"`
+	Request
 	Method string           `json:"method"`
 	Params InitializeParams `json:"params"`
 }
