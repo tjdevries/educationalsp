@@ -28,10 +28,10 @@ type InitializeResult struct {
 type ServerCapabilities struct {
 	TextDocumentSync int `json:"textDocumentSync"`
 
-	HoverProvider      bool        `json:"hoverProvider"`
-	DefinitionProvider bool        `json:"definitionProvider"`
-	CodeActionProvider bool        `json:"codeActionProvider"`
-	CompletionProvider interface{} `json:"completionProvider"`
+	HoverProvider      bool           `json:"hoverProvider"`
+	DefinitionProvider bool           `json:"definitionProvider"`
+	CodeActionProvider bool           `json:"codeActionProvider"`
+	CompletionProvider map[string]any `json:"completionProvider"`
 }
 
 type ServerInfo struct {
